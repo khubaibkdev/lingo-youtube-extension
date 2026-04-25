@@ -1,0 +1,18 @@
+{
+  "name": "lingo-subtitle-extension-main",
+  "version": "1.0.0",
+  "description": "Translate YouTube subtitles into Pashto or Balochi in real time using a local backend (Whisper + M2M100). The extension injects a translate button into the YouTube player, fetches translated segments from your backend, and overlays the translated subtitles (plus English) on the video.",
+  "main": "content.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@distube/ytdl-core": "^4.16.12"
+  },
+  "devDependencies": {
+    "esbuild": "^0.28.0"
+  }
+}
