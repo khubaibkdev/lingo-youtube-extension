@@ -1,0 +1,138 @@
+/* =========================================================
+   SubFlow Chrome Extension — Content Styles
+   Scoped with #subflow- prefix to avoid YouTube CSS conflicts
+   ========================================================= */
+
+/* ------- SUBTITLE OVERLAY ------- */
+#subflow-overlay {
+  position: absolute;
+  bottom: 60px;
+  left: 0;
+  right: 0;
+  z-index: 99999;
+  text-align: center;
+  pointer-events: none;
+  padding: 0 12%;
+  transition: opacity 0.3s ease;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+#subflow-overlay-text {
+  display: inline-block;
+  font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 22px;
+  font-weight: 700;
+  color: #ffffff;
+  background: rgba(0, 0, 0, 0.75);
+  padding: 6px 16px;
+  border-radius: 6px;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.6);
+  line-height: 1.4;
+  max-width: 100%;
+  width: fit-content;
+  opacity: 0;
+  transform: translateY(4px);
+  transition: opacity 0.25s ease, transform 0.25s ease;
+}
+
+#subflow-overlay-text.subflow-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+#subflow-overlay-english {
+  display: inline-block;
+  font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 16px;
+  font-weight: 600;
+  color: #ffffff;
+  background: rgba(0, 0, 0, 0.7);
+  padding: 6px 14px;
+  border-radius: 6px;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.6);
+  max-width: 100%;
+  width: fit-content;
+  opacity: 0;
+  transition: opacity 0.25s ease;
+}
+
+#subflow-overlay-english.subflow-visible {
+  opacity: 1;
+}
+
+/* ------- NATIVE CAPTION VISIBILITY ------- */
+body.subflow-hide-native-captions .ytp-caption-window-container,
+body.subflow-hide-native-captions .caption-window,
+body.subflow-hide-native-captions .ytp-caption-segment {
+  display: none !important;
+}
+
+/* ------- TRANSLATE BUTTON ------- */
+#subflow-translate-btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  cursor: pointer;
+  opacity: 0.8;
+  transition: opacity 0.2s ease;
+}
+
+#subflow-translate-btn:hover {
+  opacity: 1;
+}
+
+#subflow-translate-btn svg {
+  width: 22px;
+  height: 22px;
+}
+
+/* Active state — subtitles loaded */
+#subflow-translate-btn.subflow-active svg {
+  color: #06b6d4;
+  filter: drop-shadow(0 0 4px rgba(6, 182, 212, 0.5));
+}
+
+/* Loading spinner animation */
+#subflow-translate-btn.subflow-loading svg {
+  animation: subflow-spin 1s linear infinite;
+  color: #f59e0b;
+}
+
+@keyframes subflow-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* ------- TOAST NOTIFICATION ------- */
+#subflow-toast {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 999999;
+  font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  color: #f0f0f8;
+  background: linear-gradient(135deg, rgba(124, 58, 237, 0.9), rgba(59, 130, 246, 0.9));
+  padding: 12px 20px;
+  border-radius: 10px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(10px);
+  max-width: 400px;
+  opacity: 0;
+  transform: translateX(100px);
+  transition: opacity 0.35s ease, transform 0.35s ease;
+  pointer-events: none;
+}
+
+#subflow-toast.subflow-toast-show {
+  opacity: 1;
+  transform: translateX(0);
+  pointer-events: auto;
+}

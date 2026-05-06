@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    html, body {
+      width: 320px;
+      margin: 0;
+      padding: 0;
+      background: transparent;
+    }
+
+    body {
+      font-family: 'Segoe UI', -apple-system, sans-serif;
+      color: #f0f0f8;
+    }
+
+    .popup {
+      background: #0d0d1f;
+      border-radius: 8px;
+      padding: 20px;
+      overflow: hidden;
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+    }
+
+    .header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 16px;
+      padding-bottom: 14px;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+    }
+
+    .header__icon { font-size: 22px; }
+
+    .header__title {
+      font-size: 16px;
+      font-weight: 800;
+      background: linear-gradient(135deg, #7c3aed, #3b82f6, #06b6d4);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .field {
+      margin-bottom: 14px;
+    }
+
+    .field label {
+      display: block;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      color: #9a9ab0;
+      margin-bottom: 6px;
+    }
+
+    select, input[type="text"], input[type="password"] {
+      width: 100%;
+      padding: 10px 12px;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 8px;
+      color: #f0f0f8;
+      font-family: inherit;
+      font-size: 13px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    select:focus, input[type="text"]:focus, input[type="password"]:focus {
+      border-color: #7c3aed;
+    }
+
+    select option {
+      background: #1a1a2e;
+      color: #f0f0f8;
+    }
+
+    .toggle-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 0;
+      margin-bottom: 14px;
+    }
+
+    .toggle-row span {
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    .toggle {
+      position: relative;
+      width: 40px;
+      height: 22px;
+    }
+
+    .toggle input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
+    .toggle-slider {
+      position: absolute;
+      cursor: pointer;
+      inset: 0;
+      background: rgba(255,255,255,0.1);
+      border-radius: 22px;
+      transition: 0.3s;
+    }
+
+    .toggle-slider::before {
+      content: '';
+      position: absolute;
+      width: 16px;
+      height: 16px;
+      left: 3px;
+      bottom: 3px;
+      background: #fff;
+      border-radius: 50%;
+      transition: 0.3s;
+    }
+
+    .toggle input:checked + .toggle-slider {
+      background: #7c3aed;
+    }
+
+    .toggle input:checked + .toggle-slider::before {
+      transform: translateX(18px);
+    }
+
+    .save-btn {
+      width: 100%;
+      padding: 10px;
+      background: linear-gradient(135deg, #7c3aed, #3b82f6, #06b6d4);
+      border: none;
+      border-radius: 8px;
+      color: #fff;
+      font-family: inherit;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: opacity 0.2s, transform 0.15s;
+    }
+
+    .save-btn:hover {
+      opacity: 0.9;
+      transform: translateY(-1px);
+    }
+
+    .save-btn:active { transform: translateY(0); }
+
+    .status {
+      text-align: center;
+      margin-top: 10px;
+      font-size: 12px;
+      color: #22c55e;
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+
+    .status.show { opacity: 1; }
+
+    .api-key-input {
+      padding: 12px 14px;
+      border-color: rgba(124, 58, 237, 0.35);
+      background: rgba(124, 58, 237, 0.08);
+      letter-spacing: 0.4px;
+    }
+
+    .api-key-input:focus {
+      border-color: #7c3aed;
+      box-shadow: 0 0 0 2px rgba(124, 58, 237, 0.25);
+    }
+  </style>
+</head>
+<body>
+  <div class="popup">
+    <div class="header">
+      <span class="header__icon">🎬</span>
+      <span class="header__title">LingoSub Settings</span>
+    </div>
+
+    <div class="field">
+      <label>Language</label>
+      <select id="lang">
+        <option value="ps">🇦🇫 Pashto</option>
+        <option value="bal">🗣️ Balochi</option>
+      </select>
+    </div>
+
+    <div class="toggle-row">
+      <span>Ignore default subtitle</span>
+      <label class="toggle">
+        <input type="checkbox" id="ignoreDefaultSubtitle">
+        <span class="toggle-slider"></span>
+      </label>
+    </div>
+
+    <div class="field">
+      <label>API Key</label>
+      <input type="password" id="apiKey" class="api-key-input" placeholder="Enter your API key" spellcheck="false">
+    </div>
+
+    <button class="save-btn" id="saveBtn">Save Settings</button>
+    <div class="status" id="status">✅ Settings saved!</div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
