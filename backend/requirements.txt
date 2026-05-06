@@ -2,11 +2,9 @@ fastapi
 uvicorn
 sqlalchemy
 python-multipart
-openai-whisper
-torch
-numpy
 pydantic
 psycopg2-binary
 yt-dlp
 requests
 python-dotenv
+imageio-ffmpeg

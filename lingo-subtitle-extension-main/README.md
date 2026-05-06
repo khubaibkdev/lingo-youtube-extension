@@ -57,6 +57,7 @@ Update `manifest.json` if you want to point to a different backend host.
 
 ## Project Structure
 - `manifest.json` Extension manifest (MV3).
+
 - `content.js` Injected script that adds the translate button, calls the backend, and syncs subtitles.
 - `content.css` Overlay styles and UI affordances.
 - `popup.html` UI for settings.

@@ -11,6 +11,7 @@
     ignoreDefaultSubtitle: false,
   };
   const API_BASE_URL = 'http://localhost:8000'; // Update to your backend host
+  const DEBUG_OVERLAY = true;  // toggle off to hide the diagnostic HUD
   let segments = [];
   let targetKey = 'translation';
   let syncInterval = null;
@@ -18,6 +19,8 @@
   let overlayEl = null;
   let overlayTextEl = null;
   let overlayEnglishEl = null;
+  let debugHudEl = null;
+  let segmentActivatedAt = -1;       // video.currentTime when current segment became active
   let translateBtn = null;
   let isTranslating = false;
 
@@ -163,6 +166,29 @@
 
     overlayTextEl = document.getElementById('subflow-overlay-text');
     overlayEnglishEl = document.getElementById('subflow-overlay-english');
+
+    if (DEBUG_OVERLAY) {
+      const oldHud = document.getElementById('subflow-debug-hud');
+      if (oldHud) oldHud.remove();
+      debugHudEl = document.createElement('div');
+      debugHudEl.id = 'subflow-debug-hud';
+      debugHudEl.style.cssText = `
+        position: absolute;
+        top: 8px;
+        left: 8px;
+        z-index: 99999;
+        font-family: Consolas, 'Courier New', monospace;
+        font-size: 11px;
+        line-height: 1.5;
+        color: #0f0;
+        background: rgba(0,0,0,0.75);
+        padding: 4px 8px;
+        border-radius: 4px;
+        pointer-events: none;
+        white-space: pre;
+      `;
+      playerContainer.appendChild(debugHudEl);
+    }
     console.log('[SubFlow] Overlay created');
   }
 
@@ -218,7 +244,8 @@
     }
 
     const apiKey = settings.apiKey.trim();
-    const langLabel = settings.lang === 'ps' ? 'Pashto' : 'Balochi';
+    const LANG_LABELS = { ps: 'Pashto', bal: 'Balochi', en: 'English', ur: 'Urdu' };
+    const langLabel = LANG_LABELS[settings.lang] || settings.lang;
     applyIgnoreDefaultSubtitle(settings.ignoreDefaultSubtitle);
 
     isTranslating = true;
@@ -232,9 +259,11 @@
       showToast(`Checking for translations in ${langLabel}...`);
       const checkResp = await fetchWithKey(`/v1/youtube/check?videoId=${videoId}&lang=${settings.lang}`, 'GET', null, apiKey);
 
+      if (!(await handleAuthErrors(checkResp, 'check'))) return;
       if (!checkResp.ok) throw new Error(`Backend check failed (${checkResp.status})`);
 
       const checkData = await checkResp.json();
+      if (showQuotaExceededIfPresent(checkData)) return;
 
       if (checkData.status === 'unlocked') {
         segments = checkData.segments || [];
@@ -243,17 +272,12 @@
         return;
       }
 
-      if (checkData.status === 'insufficient_balance') {
-        showToast(`❌ Insufficient balance. Need ${checkData.required} mins, have ${checkData.available}.`);
-        return;
-      }
-
       // STEP 2: If status is 'requires_audio', we must extract and upload
       if (checkData.status === 'requires_audio') {
         showToast(`Capturing audio from YouTube (Bypassing IP bans)...`);
         const { blob, duration } = await fetchAudioBlob(videoId);
 
-        showToast(`Uploading audio to AI engine...`);
+        showToast(`Uploading & translating (10–30s for short clips)...`);
         const formData = new FormData();
         formData.append('videoId', videoId);
         formData.append('lang', settings.lang);
@@ -261,13 +285,23 @@
         formData.append('audioFile', blob, 'video_audio.webm');
 
         const uploadResp = await fetchWithKey('/v1/youtube/upload-audio', 'POST', formData, apiKey);
-        if (!uploadResp.ok) throw new Error(`Upload failed (${uploadResp.status})`);
+
+        if (!(await handleAuthErrors(uploadResp, 'upload'))) return;
+        if (!uploadResp.ok) {
+          const err = await uploadResp.json().catch(() => ({}));
+          throw new Error(`Upload failed (${uploadResp.status}): ${err.detail || ''}`);
+        }
 
         const uploadData = await uploadResp.json();
-        showToast(`✅ ${uploadData.message}`);
+        if (showQuotaExceededIfPresent(uploadData)) return;
 
-        // Wait for async processing
-        showToast('Processing started. This takes ~1-3 mins. Click again shortly.');
+        if (uploadData.status === 'unlocked' && Array.isArray(uploadData.segments)) {
+          segments = uploadData.segments;
+          showToast(`✅ Translation ready!`);
+          finalizeTranslation();
+        } else {
+          showToast(uploadData.message || 'Translation finished but returned no segments.');
+        }
       }
 
     } catch (err) {
@@ -277,6 +311,27 @@
       isTranslating = false;
       if (translateBtn) translateBtn.classList.remove('subflow-loading');
     }
+  }
+
+  // Surfaces 401 (invalid key) as a user-friendly toast and returns false so
+  // the caller can short-circuit. Returns true if no auth error.
+  async function handleAuthErrors(resp, label) {
+    if (resp.status !== 401) return true;
+    const err = await resp.json().catch(() => ({}));
+    const reason = err.detail || 'invalid or revoked';
+    showToast(`❌ API key rejected (${reason}). Update it in the extension popup.`);
+    console.warn(`[SubFlow] 401 from ${label}:`, err);
+    return false;
+  }
+
+  // If the response body indicates quota exhaustion, render a toast with the
+  // numbers from the platform and return true so the caller can stop. Else false.
+  function showQuotaExceededIfPresent(data) {
+    if (!data || data.status !== 'quota_exceeded') return false;
+    const have = Number(data.balance_minutes ?? 0).toFixed(2);
+    const need = Number(data.required ?? 0).toFixed(2);
+    showToast(`❌ Quota exceeded. Need ${need} min, have ${have} min. Top up on the platform.`);
+    return true;
   }
 
   function finalizeTranslation() {
@@ -301,8 +356,40 @@
     const t = video.currentTime;
     const idx = findSegmentIndex(t);
 
+    // Update the debug HUD every tick (independent of segment-change short-circuit).
+    if (DEBUG_OVERLAY && debugHudEl) {
+      const seg = idx >= 0 ? segments[idx] : null;
+      if (seg) {
+        const gapStart = (t - seg.start);    // how far into the segment we are
+        const gapEnd   = (seg.end - t);      // how much of segment remains
+        debugHudEl.textContent =
+          `t=${t.toFixed(2)}s  seg[${idx}/${segments.length-1}]\n` +
+          `start=${seg.start.toFixed(2)}  end=${seg.end.toFixed(2)}\n` +
+          `into=+${gapStart.toFixed(2)}s  rem=${gapEnd.toFixed(2)}s`;
+      } else {
+        // No active segment — find the next upcoming one for context.
+        const next = segments.find(s => s.start > t);
+        const prev = [...segments].reverse().find(s => s.end < t);
+        debugHudEl.textContent =
+          `t=${t.toFixed(2)}s  [GAP]\n` +
+          (prev ? `prev end=${prev.end.toFixed(2)} (-${(t-prev.end).toFixed(2)}s)\n` : `prev: none\n`) +
+          (next ? `next start=${next.start.toFixed(2)} (+${(next.start-t).toFixed(2)}s)` : `next: none`);
+      }
+    }
+
     if (idx === activeSegmentIdx) return;
     activeSegmentIdx = idx;
+    segmentActivatedAt = t;
+
+    if (DEBUG_OVERLAY && idx >= 0) {
+      const seg = segments[idx];
+      // Positive lateness = activated AFTER seg.start (subtitle appears late).
+      const lateness = t - seg.start;
+      console.log(
+        `[SubFlow] seg[${idx}] activated at t=${t.toFixed(2)}s  ` +
+        `(seg.start=${seg.start.toFixed(2)}, lateness=${lateness >= 0 ? '+' : ''}${lateness.toFixed(2)}s)`
+      );
+    }
 
     if (idx >= 0) {
       const seg = segments[idx];
@@ -362,6 +449,10 @@
       overlayEl = null;
       overlayTextEl = null;
       overlayEnglishEl = null;
+    }
+    if (debugHudEl) {
+      debugHudEl.remove();
+      debugHudEl = null;
     }
 
     // Re-inject button on watch pages

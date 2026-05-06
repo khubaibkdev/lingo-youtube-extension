@@ -1,13 +1,12 @@
 # System Architecture & Flow Document
 
-This document outlines the complete end-to-end architecture for the YouTube Subtitle Extension, combining **Client-Side Audio Extraction** (to bypass YouTube IP bans) with the **Backend "Unlock" Database Model** (for billing and caching).
+This document outlines the complete end-to-end architecture for the YouTube Subtitle Extension, combining **Client-Side Audio Extraction** (to bypass YouTube IP bans) with the **Backend "Unlock" Database Model** (for billing and caching). for this case we will deduct the
+minutes from the apikey through endpoint(might be same i will provide currently it only deducts when audio processed through it)
 
+In this user is basically a API key,
 ---
 
-## 1. High-Level Summary
-The system allows users to instantly translate YouTube videos. Because translating audio via AI models (Whisper/M2M100) is computationally expensive, the system caches every translated video in a centralized backend Database.
-
-When a user requests a video, they pay via "API Minutes". 
+When a user requests a video, they pay via "API Minutes(platform api key will handle)". 
 - If the video is **new**, the extension downloads the audio securely on the user's browser, uploads it to the backend, and the backend processes and saves it. 
 - If the video is **already processed** by anyone else, the user is charged to "unlock" the translation for their account, and the data is delivered instantly without reprocessing.
 
@@ -19,11 +18,7 @@ Below is a simple, step-by-step flowchart of what happens when a user attempts t
 
 ```mermaid
 flowchart TD
-    A([User clicks 'Translate']) --> B{Is it saved in Local Browser Cache?}
-    
-    B -- Yes --> C([Show Subtitles Instantly!])
-    
-    B -- No --> D[Extension asks Backend API for Video]
+    A([User clicks 'Translate']) 
     D --> E{Does Backend have Video in DB?}
     
     E -- Yes --> F[Backend checks if User already 'Unlocked' this Video]
@@ -94,7 +89,7 @@ To securely track balances and prevent double-charging users for previously unlo
 *Headers: `x-api-key: <user_key>`*
 
 **Logic:**
-1. Is `videoId` + `user_id` inside `User_Unlocked_Videos`? **Yes -> Return segments. No charge.**
+1. Is `videoId` + `user_id(IT will be APi key)` inside `User_Unlocked_Videos`? **Yes -> Return segments. No charge.**
 2. Is `videoId` inside `Transcriptions` globally? **Yes -> Check user balance, deduct minutes, inert to `User_Unlocked_Videos`, and return segments.**
 3. Is `videoId` NOT inside `Transcriptions`? **No -> Return `{ status: "requires_audio" }`.**
 
